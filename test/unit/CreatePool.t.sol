@@ -5,7 +5,13 @@ import {Base} from "./Base.t.sol";
 import {PoolManager} from "src/PoolManager.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {FixedPointMathLib} from "@vectorized/solady/src/utils/FixedPointMathLib.sol";
-import {ZeroAddress, SameToken, PoolAlreadyExists, ZeroAmountNotAllowed, InsufficientOutputAmount} from "src/Errors.sol";
+import {
+    ZeroAddress,
+    SameToken,
+    PoolAlreadyExists,
+    ZeroAmountNotAllowed,
+    InsufficientOutputAmount
+} from "src/Errors.sol";
 
 contract CreatePoolTest is Base {
     uint256 internal constant MIN_LIQUIDITY = 1e3;
@@ -34,10 +40,7 @@ contract CreatePoolTest is Base {
         address t1 = pm.getToken1(poolId);
 
         assertTrue(t0 < t1);
-        assertTrue(
-            (t0 == address(tokenA) && t1 == address(tokenB))
-                || (t0 == address(tokenB) && t1 == address(tokenA))
-        );
+        assertTrue((t0 == address(tokenA) && t1 == address(tokenB)) || (t0 == address(tokenB) && t1 == address(tokenA)));
     }
 
     function test_createPool_mintsLpToDeadAddress() public {
@@ -52,7 +55,8 @@ contract CreatePoolTest is Base {
         uint256 expectedLp = expectedTotal - MIN_LIQUIDITY;
 
         vm.prank(alice);
-        (bytes32 poolId, uint256 lp) = pm.createPool(address(tokenA), address(tokenB), POOL_AMOUNT, POOL_AMOUNT, block.timestamp);
+        (bytes32 poolId, uint256 lp) =
+            pm.createPool(address(tokenA), address(tokenB), POOL_AMOUNT, POOL_AMOUNT, block.timestamp);
 
         assertEq(lp, expectedLp);
         assertEq(pm.balanceOf(alice, uint256(poolId)), expectedLp);

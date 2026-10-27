@@ -100,11 +100,12 @@ contract PoolManager is ERC1155, Ownable, ReentrancyGuard {
         SafeTransferLib.safeTransferFrom(sorted0, msg.sender, address(this), sortedAmount0);
         SafeTransferLib.safeTransferFrom(sorted1, msg.sender, address(this), sortedAmount1);
 
-        uint256 balance0 = SafeTransferLib.balanceOf(sorted0, address(this));
-        uint256 balance1 = SafeTransferLib.balanceOf(sorted1, address(this));
-
+        // reserves are per pool, not balanceOf — tokens can be shared between pools
         s_pools[poolId] = Pool({
-            s_reserve0: balance0, s_reserve1: balance1, s_totalShares: totalShares, s_kLast: balance0 * balance1
+            s_reserve0: sortedAmount0,
+            s_reserve1: sortedAmount1,
+            s_totalShares: totalShares,
+            s_kLast: sortedAmount0 * sortedAmount1
         });
 
         s_poolToken0[poolId] = sorted0;
@@ -125,15 +126,7 @@ contract PoolManager is ERC1155, Ownable, ReentrancyGuard {
         uint256 deadline
     ) external nonReentrant returns (uint256 lp) {
         Pool storage pool = s_pools[poolId];
-        address token0Addr = s_poolToken0[poolId];
-        address token1Addr = s_poolToken1[poolId];
-
-        uint256 balance0 = SafeTransferLib.balanceOf(token0Addr, address(this));
-        uint256 balance1 = SafeTransferLib.balanceOf(token1Addr, address(this));
-
-        pool.s_reserve0 = balance0;
-        pool.s_reserve1 = balance1;
-        uint256 reserve0 = balance0;
+        uint256 reserve0 = pool.s_reserve0;
 
         // -- F:
         if (block.timestamp > deadline) revert DeadlineExceeded();
@@ -146,7 +139,7 @@ contract PoolManager is ERC1155, Ownable, ReentrancyGuard {
         uint256 amount0;
         uint256 amount1;
 
-        uint256 reserve1 = balance1;
+        uint256 reserve1 = pool.s_reserve1;
         uint256 amount1Optimal = amount0Desired * reserve1 / reserve0;
 
         if (amount1Optimal <= amount1Desired) {
@@ -192,14 +185,6 @@ contract PoolManager is ERC1155, Ownable, ReentrancyGuard {
         returns (uint256 amount0, uint256 amount1)
     {
         Pool storage pool = s_pools[poolId];
-        address token0Addr = s_poolToken0[poolId];
-        address token1Addr = s_poolToken1[poolId];
-
-        uint256 balance0 = SafeTransferLib.balanceOf(token0Addr, address(this));
-        uint256 balance1 = SafeTransferLib.balanceOf(token1Addr, address(this));
-
-        pool.s_reserve0 = balance0;
-        pool.s_reserve1 = balance1;
 
         // -- F:
         if (block.timestamp > deadline) revert DeadlineExceeded();
@@ -207,7 +192,7 @@ contract PoolManager is ERC1155, Ownable, ReentrancyGuard {
         // S / T = dx / x
         // dx = S * x / T
         // dy = S * y / T
-        uint256 reserve0 = balance0;
+        uint256 reserve0 = pool.s_reserve0;
         if (reserve0 == 0) revert PoolDoesNotExists();
         if (lp == 0) revert ZeroAmountNotAllowed();
         if (balanceOf(msg.sender, uint256(poolId)) < lp) revert InsufficientLiquidity();
@@ -239,20 +224,12 @@ contract PoolManager is ERC1155, Ownable, ReentrancyGuard {
         returns (uint256 amountOut)
     {
         Pool storage pool = s_pools[poolId];
-        address token0Addr = s_poolToken0[poolId];
-        address token1Addr = s_poolToken1[poolId];
-
-        uint256 balance0 = SafeTransferLib.balanceOf(token0Addr, address(this));
-        uint256 balance1 = SafeTransferLib.balanceOf(token1Addr, address(this));
-
-        pool.s_reserve0 = balance0;
-        pool.s_reserve1 = balance1;
 
         // -- F:
         if (block.timestamp > deadline) revert DeadlineExceeded();
 
-        uint256 reserve0 = balance0;
-        uint256 reserve1 = balance1;
+        uint256 reserve0 = pool.s_reserve0;
+        uint256 reserve1 = pool.s_reserve1;
         address token0 = s_poolToken0[poolId];
         address token1 = s_poolToken1[poolId];
 
